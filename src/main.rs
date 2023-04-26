@@ -1,6 +1,12 @@
+mod schema;
+
 use anyhow::{bail, Result};
 use std::fs::File;
 use std::io::prelude::*;
+use sqlite_starter_rust::{
+    header::PageHeader, record::parse_record, schema::Schema, varint::parse_varint,
+};
+use crate::schema::Schema;
 
 fn main() -> Result<()> {
     // Parse arguments
@@ -13,6 +19,8 @@ fn main() -> Result<()> {
 
     // Parse command and act accordingly
     let command = &args[2];
+    let mut database = Vec::new();
+    file.read_to_end(&mut database)?;
     match command.as_str() {
         ".dbinfo" => {
             let mut file = File::open(&args[1])?;
@@ -34,6 +42,45 @@ fn main() -> Result<()> {
             file.read_exact(&mut b_tree_header)?;
             let table_size = u16::from_be_bytes([b_tree_header[3], b_tree_header[4]]);
             println!("number of tables: {}", table_size);
+        }
+        ".tables" => {
+            // third stage
+            // Let K be the number of cells on the btree.
+            // The cell pointer array consists of K 2-byte integer offsets to the cell contents.
+            // let mut file = File::open(&args[1])?;
+            // let mut header = [0; 108];
+            // file.read_exact(&mut header)?;
+            // let page_size = u16::from_be_bytes([header[16], header[17]]);
+            // let table_size = u16::from_be_bytes([b_tree_header[103], b_tree_header[104]]);
+            //
+            // let mut names: Vec<String> = vec![];
+            // for i in 0..table_size {
+            //
+            // }
+            // println!("{}", names.join(" "));
+            let page_header = PageHeader::parse(&database[100..108])?;
+
+                       let cell_pointers = database[108..]
+                                .chunks_exact(2)
+                               .take(page_header.number_of_cells.into())
+                              .map(|bytes| u16::from_be_bytes(bytes.try_into().unwrap()))
+                              .collect::<Vec<_>>();
+                        #[allow(unused_variables)]
+                            let table_names = cell_pointers
+                               .into_iter()
+                               .map(|cell_pointer| {
+                                   let stream = &database[cell_pointer as usize..];
+                                  let (_, offset) = parse_varint(stream);
+                                  let (_rowid, read_bytes) = parse_varint(&stream[offset..]);
+                                 parse_record(&stream[offset + read_bytes..], 5)
+                                         .map(|record| Schema::parse(record).expect("Invalid record").table_name)
+                                })
+                            .collect::<Result<Vec<_>>>()?;
+
+                       for name in table_names {
+                               print!("{} ", name)
+                       }
+
         }
         _ => bail!("Missing or invalid command passed: {}", command),
     }
