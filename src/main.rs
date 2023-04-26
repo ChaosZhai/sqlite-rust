@@ -3,9 +3,8 @@ mod schema;
 use anyhow::{bail, Result};
 use std::fs::File;
 use std::io::prelude::*;
-use sqlite_starter_rust::{
-    header::PageHeader, record::parse_record, schema::Schema, varint::parse_varint,
-};
+use crate::sqlitey::database_header::Header;
+use crate::sqlitey::page_header::PageHeader;
 use crate::schema::Schema;
 
 fn main() -> Result<()> {
