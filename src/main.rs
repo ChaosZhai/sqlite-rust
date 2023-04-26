@@ -24,10 +24,16 @@ fn main() -> Result<()> {
             let page_size = u16::from_be_bytes([header[16], header[17]]);
 
             // You can use print statements as follows for debugging, they'll be visible when running tests.
-            println!("Logs from your program will appear here!");
+            // println!("Logs from your program will appear here!");
 
             // Uncomment this block to pass the first stage
             println!("database page size: {}", page_size);
+
+            // second stage
+            let mut b_tree_header = [0; 8];
+            file.read_exact(&mut b_tree_header)?;
+            let table_size = u16::from_be_bytes([b_tree_header[3], b_tree_header[4]]);
+            println!("number of tables: {}", table_size);
         }
         _ => bail!("Missing or invalid command passed: {}", command),
     }
